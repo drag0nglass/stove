@@ -3,6 +3,9 @@ package pegasus
 import (
 	"github.com/HearthSim/hs-proto-go/pegasus/util"
 	"github.com/golang/protobuf/proto"
+	"log"
+	"math/rand"
+	"time"
 )
 
 type Store struct{}
@@ -73,6 +76,75 @@ func OnGetBattlePayStatus(s *Session, body []byte) *Packet {
 	return EncodePacket(util.BattlePayStatusResponse_ID, &res)
 }
 
+func buyPacks(accountId int64, product ProductGoldCost, quantity int32) bool {
+	if product.ProductType == 1 {
+		//buy booster packs
+		allCards := []DbfCard{}
+		db.Where("is_collectible = ?", true).Find(&allCards)
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		var left, right int32
+		switch product.PackType {
+			case 1:
+				left = 1
+				right = 1926
+			case 9:
+				left = 1927
+				right = 2183
+			default:
+				left = 1
+				right = 2183
+		}
+		runCards := allCards[:0]
+		
+		for _, x := range allCards {
+			if (left <= x.ID && x.ID <= right) && (x.HeroPowerID == 0) && (x.GoldSellPrice > 0) {
+				runCards = append(runCards, x)
+			}
+		}
+		
+		for j := int32(0); j < quantity; j++ {
+			cards := []BoosterCard{}
+			//A pack contains 5 cards
+			whiteCount := 0
+			for i := 0; i < 5; i++ {
+				var cardId int32 = 0
+				var premium int32 = 0
+				if r.Intn(100) == 1 {
+					premium = 1
+				}
+				
+				for {
+					chooseCard := runCards[r.Intn(len(runCards))]
+					if whiteCount == 4 && chooseCard.Rarity == 1 {
+						continue
+					}
+					if chooseCard.Rarity == 1 || r.Intn((int(chooseCard.Rarity)-1) * 5) == 1 {
+						cardId = chooseCard.ID
+						if chooseCard.Rarity == 1 {
+							whiteCount++
+						}
+						break
+					}
+				}
+				cards = append(cards, BoosterCard{
+					CardID: cardId,
+					Premium: premium,
+				})
+			}
+			
+			booster := Booster{
+				AccountID: accountId, 
+				BoosterType: int(product.PackType), 
+				Opened: false,
+				Cards: cards,
+			}
+			db.Create(&booster)
+		}
+	}
+	
+	return true
+}
+
 func OnPurchaseWithGold(s *Session, body []byte) *Packet {
 	req := util.PurchaseWithGold{}
 	err := proto.Unmarshal(body, &req)
@@ -83,9 +155,14 @@ func OnPurchaseWithGold(s *Session, body []byte) *Packet {
 	product := ProductGoldCost{}
 	productType := req.GetProduct()
 	data := req.GetData()
+	quantity := req.GetQuantity()
+	productCount := 0
 	// If data is > 0, we're buying a pack
 	if data > 0 {
-		db.Where("product_type = ? AND pack_type = ?", productType, data).Find(&product)
+		db.Where("product_type = ? AND pack_type = ?", productType, data).Find(&product).Count(&productCount)
+		if productCount == 1 {
+			buyPacks(s.Account.ID, product, quantity)
+		}
 	} else {
 		db.Where("product_type = ?", productType).Find(&product)
 	}

@@ -100,6 +100,7 @@ func (s *Session) HandleAccountInfoRequest(req util.GetAccountInfo_Request) *Pac
 		classicPacks := s.GetBoosterInfo(1)
 		gvgPacks := s.GetBoosterInfo(9)
 		tgtPacks := s.GetBoosterInfo(10)
+		log.Printf("Account: %d, Remain packs: %d %d %d\n", s.Account.ID, *classicPacks.Count, *gvgPacks.Count, *tgtPacks.Count)
 		if *classicPacks.Count > 0 {
 			res.List = append(res.List, classicPacks)
 		}
@@ -475,6 +476,7 @@ func MakeCardDef(id, premium int32) *shared.CardDef {
 func OnOpenBooster(s *Session, body []byte) *Packet {
 	req := util.OpenBooster{}
 	err := proto.Unmarshal(body, &req)
+		
 	if err != nil {
 		panic(err)
 	}
@@ -501,7 +503,8 @@ func OnOpenBooster(s *Session, body []byte) *Packet {
 		res.List = append(res.List, boosterCard)
 
 	}
-
+	booster.Opened = true
+	db.Save(&booster)
 	return EncodePacket(util.BoosterContent_ID, &res)
 }
 
@@ -699,6 +702,7 @@ func (s *Session) GetBoosterInfo(kind int32) *shared.BoosterInfo {
 	db.Model(Booster{}).
 		Where("booster_type = ? and opened = ? and account_id = ?", kind, false, s.Account.ID).
 		Count(&count)
+	log.Printf("kind: %d count: %d\n", kind, count)    
 	res := &shared.BoosterInfo{}
 	res.Count = proto.Int32(count)
 	res.Type = proto.Int32(kind)
