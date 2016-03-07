@@ -3,7 +3,7 @@ package pegasus
 import (
 	"github.com/HearthSim/hs-proto-go/pegasus/util"
 	"github.com/golang/protobuf/proto"
-	"log"
+	//"log"
 	"math/rand"
 	"time"
 )
@@ -97,7 +97,7 @@ func buyPacks(accountId int64, product ProductGoldCost, quantity int32) bool {
 		runCards := allCards[:0]
 		
 		for _, x := range allCards {
-			if (left <= x.ID && x.ID <= right) && (x.HeroPowerID == 0) && (x.GoldSellPrice > 0) {
+			if (left <= x.ID && x.ID <= right) && (x.GoldSellPrice > 0) {
 				runCards = append(runCards, x)
 			}
 		}
@@ -109,7 +109,7 @@ func buyPacks(accountId int64, product ProductGoldCost, quantity int32) bool {
 			for i := 0; i < 5; i++ {
 				var cardId int32 = 0
 				var premium int32 = 0
-				if r.Intn(100) == 1 {
+				if r.Intn(20) == 1 {
 					premium = 1
 				}
 				
@@ -118,7 +118,7 @@ func buyPacks(accountId int64, product ProductGoldCost, quantity int32) bool {
 					if whiteCount == 4 && chooseCard.Rarity == 1 {
 						continue
 					}
-					if chooseCard.Rarity == 1 || r.Intn((int(chooseCard.Rarity)-1) * 5) == 1 {
+					if chooseCard.Rarity == 1 || r.Intn((int(chooseCard.Rarity)-1) * 25) == 1 {
 						cardId = chooseCard.ID
 						if chooseCard.Rarity == 1 {
 							whiteCount++
@@ -131,6 +131,10 @@ func buyPacks(accountId int64, product ProductGoldCost, quantity int32) bool {
 					Premium: premium,
 				})
 			}
+			tmp := cards[4]
+			tmpId := r.Intn(5)
+			cards[4] = cards[tmpId]
+			cards[tmpId] = tmp
 			
 			booster := Booster{
 				AccountID: accountId, 
@@ -140,6 +144,7 @@ func buyPacks(accountId int64, product ProductGoldCost, quantity int32) bool {
 			}
 			db.Create(&booster)
 		}
+		//TODO: Check if card gen
 	}
 	
 	return true

@@ -10,7 +10,8 @@ import (
 
 func (v *Account) Init(sess *Session) {
 	// TODO: fetch the account using the bnet session
-	db.Find(v)
+	
+	db.Where("ID = ?", sess.host.GetbnetID()).Find(v)
 	v.displayName = "FIXME"
 
 	sess.RegisterPacket(util.GetAccountInfo_ID, OnGetAccountInfo)
@@ -229,6 +230,15 @@ func (s *Session) HandleAccountInfoRequest(req util.GetAccountInfo_Request) *Pac
 		return EncodePacket(util.HeroXP_ID, &res)
 	case util.GetAccountInfo_NOT_SO_MASSIVE_LOGIN:
 		res := util.NotSoMassiveLoginReply{}
+		// Client get event time including brawls from this request
+		// Hardcode TGT until it defined in database
+		events := []*util.SpecialEventTiming{}
+		tgtEvent := util.SpecialEventTiming{
+			Event: proto.String("tgt_normal_sale"),
+		}
+		events = append(events, &tgtEvent)
+		res.SpecialEventTiming = events
+		log.Printf("events res = %s", res.String())
 		return EncodePacket(util.NotSoMassiveLoginReply_ID, &res)
 	case util.GetAccountInfo_REWARD_PROGRESS:
 		res := util.RewardProgress{}

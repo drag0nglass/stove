@@ -122,6 +122,7 @@ func (s *AuthServerService) VerifyWebCredentials(body []byte) error {
 	db.Where("email = ? and web_credential = ?", string(s.email), string(req.GetWebCredentials())).First(&account)
 	if len(account) != 0 {
 		log.Printf("account %s (BattleTag: %s) authorized", account[0].Email, account[0].BattleTag)
+		s.sess.bnetID = account[0].ID
 		s.loggedIn = true
 	}
 	return s.CompleteLogin()

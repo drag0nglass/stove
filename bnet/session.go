@@ -21,6 +21,8 @@ const (
 )
 
 type Session struct {
+	// Record the bnet account's ID in db
+	bnetID	int64
 	// ServerNotifications are notifications sent by the bnet server to the game
 	// server.
 	ServerNotifications chan<- *Notification
@@ -287,4 +289,8 @@ func (s *Session) ChanForTransition(state int) chan struct{} {
 		res <- struct{}{}
 	}()
 	return res
+}
+
+func (s *Session) GetbnetID() int64 {
+	return s.bnetID
 }
