@@ -76,31 +76,33 @@ func OnGetBattlePayStatus(s *Session, body []byte) *Packet {
 	return EncodePacket(util.BattlePayStatusResponse_ID, &res)
 }
 
-func buyPacks(accountId int64, product ProductGoldCost, quantity int32) bool {
+func BuyPacks(accountId int64, product ProductGoldCost, quantity int32) bool {
 	if product.ProductType == 1 {
 		//buy booster packs
 		allCards := []DbfCard{}
 		db.Where("is_collectible = ?", true).Find(&allCards)
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		var left, right int32
+		
+		idPrefix := []string {}
 		switch product.PackType {
 			case 1:
-				left = 1
-				right = 1926
+				idPrefix = []string {"CS2", "DS1", "EX1", "NEW1", "tt"}
 			case 9:
-				left = 1927
-				right = 2183
-			default:
-				left = 1
-				right = 2183
+				idPrefix = []string {"GVG"}
+			case 10:
+				idPrefix = []string {"AT"}
 		}
 		runCards := allCards[:0]
 		
-		for _, x := range allCards {
-			if (left <= x.ID && x.ID <= right) && (x.GoldSellPrice > 0) {
-				runCards = append(runCards, x)
+		for _, prefix := range idPrefix {
+			prefixLen := len(prefix)
+			for _, x := range allCards {
+				if (x.SellPrice > 0) && (x.NoteMiniGuid[0:prefixLen] == prefix) {
+					runCards = append(runCards, x)
+				}
 			}
 		}
+		
 		
 		for j := int32(0); j < quantity; j++ {
 			cards := []BoosterCard{}
@@ -135,7 +137,6 @@ func buyPacks(accountId int64, product ProductGoldCost, quantity int32) bool {
 			tmpId := r.Intn(5)
 			cards[4] = cards[tmpId]
 			cards[tmpId] = tmp
-			
 			booster := Booster{
 				AccountID: accountId, 
 				BoosterType: int(product.PackType), 
@@ -166,7 +167,7 @@ func OnPurchaseWithGold(s *Session, body []byte) *Packet {
 	if data > 0 {
 		db.Where("product_type = ? AND pack_type = ?", productType, data).Find(&product).Count(&productCount)
 		if productCount == 1 {
-			buyPacks(s.Account.ID, product, quantity)
+			BuyPacks(s.Account.ID, product, quantity)
 		}
 	} else {
 		db.Where("product_type = ?", productType).Find(&product)
