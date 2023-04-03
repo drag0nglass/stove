@@ -1,7 +1,7 @@
 Stove
 =====
 [![AGPLv3](https://www.gnu.org/graphics/agplv3-88x31.png)](http://choosealicense.com/licenses/agpl-3.0/)
-[![Build Status](https://travis-ci.org/HearthSim/stove.svg)](https://travis-ci.org/HearthSim/stove)
+[![Build Status](https://app.travis-ci.com/drag0nglass/stove.svg?branch=master)](https://app.travis-ci.com/drag0nglass/stove)
 
 A Hearthstone account/matchmaking server in Go.
 
